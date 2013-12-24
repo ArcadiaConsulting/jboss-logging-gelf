@@ -1,36 +1,36 @@
-package me.moocar.logbackgelf;
+package es.arcadiaconsulting.graylog2.jboss;
 
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.AppenderBase;
+import static me.moocar.logbackgelf.util.InternetUtils.getInetAddress;
+import static me.moocar.logbackgelf.util.InternetUtils.getLocalHostName;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.io.Writer;
 import java.net.InetAddress;
 import java.security.MessageDigest;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.ErrorManager;
+import java.util.logging.Handler;
+import java.util.logging.LogRecord;
 
-import static me.moocar.logbackgelf.util.InternetUtils.*;
+import me.moocar.logbackgelf.ChunkFactory;
+import me.moocar.logbackgelf.MessageIdProvider;
+import me.moocar.logbackgelf.PayloadChunker;
+import me.moocar.logbackgelf.Transport;
+import me.moocar.logbackgelf.Zipper;
 
 /**
  * Responsible for Formatting a log event and sending it to a Graylog2 Server. Note that you can't swap in a different
  * Layout since the GELF format is static.
  */
-public class GelfAppender extends AppenderBase<ILoggingEvent> {
+public class Graylog2Handler extends Handler {
 
     // The following are configurable via logback configuration
     private String facility = "GELF";
     private String graylog2ServerHost = "localhost";
     private int graylog2ServerPort = 12201;
     private boolean useLoggerName = false;
-    private boolean useMarker = false;
     private boolean useThreadName = false;
     private String graylog2ServerVersion = "0.9.6";
     private int chunkThreshold = 1000;
-    private String messagePattern = "%m%rEx";
-    private String shortMessagePattern = null;
-    private Map<String, String> additionalFields = new HashMap<String, String>();
     private Map<String, String> staticAdditionalFields = new HashMap<String, String>();
     private boolean includeFullMDC;
     private String hostName;
@@ -43,40 +43,38 @@ public class GelfAppender extends AppenderBase<ILoggingEvent> {
     private final byte[] chunkedGelfId = new byte[]{0x1e, 0x0f};
 
     private AppenderExecutor appenderExecutor;
+    
+    protected volatile Boolean initialized;
+    
+    public Graylog2Handler(){
+    	this.initialized = false;
+    }
+    
+	@Override
+	public void close() throws SecurityException {
+		// Do nothigg
+	}
 
-    /**
-     * The main append method. Takes the event that is being logged, formats if for GELF and then sends it over the wire
-     * to the log server
-     *
-     * @param logEvent The event that we are logging
-     */
-    @Override
-    protected void append(ILoggingEvent logEvent) {
+	@Override
+	public void flush() {
+		// Do nothing
+	}
 
+	@Override
+	public void publish(LogRecord record) {
         try {
-
-            appenderExecutor.append(logEvent);
-
+        	synchronized (initialized) {
+				if(!initialized) {
+					initExecutor();
+					this.initialized = true;
+				}
+			}
+            appenderExecutor.append(record);
         } catch (RuntimeException e) {
-            System.out.println(getStringStackTrace(e));
-            this.addError("Error occurred: ", e);
-            throw e;
+            this.reportError("Unexpected error sending GELF message to Graylog", e, ErrorManager.GENERIC_FAILURE);
         }
-    }
-
-    private String getStringStackTrace(Exception e) {
-        Writer result = new StringWriter();
-        PrintWriter printWriter = new PrintWriter(result);
-        e.printStackTrace(printWriter);
-        return result.toString();
-    }
-
-    @Override
-    public void start() {
-        super.start();
-        initExecutor();
-    }
-
+	}
+    
     /**
      * This is an ad-hoc dependency injection mechanism. We don't want create all these classes every time a message is
      * logged. They will hang around for the lifetime of the appender.
@@ -102,9 +100,8 @@ public class GelfAppender extends AppenderBase<ILoggingEvent> {
                     new MessageIdProvider(messageIdLength, MessageDigest.getInstance("MD5"), hostName),
                     new ChunkFactory(chunkedGelfId, padSeq));
 
-            GelfConverter converter = new GelfConverter(facility, useLoggerName, useThreadName, useMarker, additionalFields,
-                    staticAdditionalFields, shortMessageLength, hostName, messagePattern, shortMessagePattern,
-                    includeFullMDC);
+            GelfConverter converter = new GelfConverter(facility, useLoggerName, useThreadName, 
+                    staticAdditionalFields, shortMessageLength, hostName, getFormatter());
 
             appenderExecutor = new AppenderExecutor(transport, payloadChunker, converter, new Zipper(), chunkThreshold);
 
@@ -162,14 +159,6 @@ public class GelfAppender extends AppenderBase<ILoggingEvent> {
         this.useLoggerName = useLoggerName;
     }
 
-    public boolean isUseMarker() {
-        return useMarker;
-    }
-
-    public void setUseMarker(boolean useMarker) {
-        this.useMarker = useMarker;
-    }
-
     /**
      * If true, an additional field call "_threadName" will be added to each gelf message. Its contents will be the
      * Name of the thread. Defaults to "false".
@@ -180,23 +169,6 @@ public class GelfAppender extends AppenderBase<ILoggingEvent> {
 
     public void setUseThreadName(boolean useThreadName) {
         this.useThreadName = useThreadName;
-    }
-
-    /**
-     * additional fields to add to the gelf message. Here's how these work: <br/> Let's take an example. I want to log
-     * the client's ip address of every request that comes into my web server. To do this, I add the ipaddress to the
-     * slf4j MDC on each request as follows: <code> ... MDC.put("ipAddress", "44.556.345.657"); ... </code> Now, to
-     * include the ip address in the gelf message, i just add the following to my logback.groovy: <code>
-     * appender("GELF", GelfAppender) { ... additionalFields = [identity:"_identity"] ... } </code> in the
-     * additionalFields map, the key is the name of the MDC to look up. the value is the name that should be given to
-     * the key in the additional field in the gelf message.
-     */
-    public Map<String, String> getAdditionalFields() {
-        return additionalFields;
-    }
-
-    public void setAdditionalFields(Map<String, String> additionalFields) {
-        this.additionalFields = additionalFields;
     }
 
     /**
@@ -249,24 +221,8 @@ public class GelfAppender extends AppenderBase<ILoggingEvent> {
     public void setHostName(String hostName) {
         this.hostName = hostName;
     }
-    /**
-     * Add an additional field. This is mainly here for compatibility with logback.xml
-     *
-     * @param keyValue This must be in format key:value where key is the MDC key, and value is the GELF field
-     *                 name. e.g "ipAddress:_ip_address"
-     */
-    public void addAdditionalField(String keyValue) {
-        String[] splitted = keyValue.split(":");
 
-        if (splitted.length != 2) {
-
-            throw new IllegalArgumentException("additionalField must be of the format key:value, where key is the MDC "
-                    + "key, and value is the GELF field name. But found '" + keyValue + "' instead.");
-        }
-
-        additionalFields.put(splitted[0], splitted[1]);
-    }
-
+    
     /**
      * Add a staticAdditional field. This is mainly here for compatibility with logback.xml
      *
@@ -313,19 +269,4 @@ public class GelfAppender extends AppenderBase<ILoggingEvent> {
         this.chunkThreshold = chunkThreshold;
     }
 
-    public String getMessagePattern() {
-        return messagePattern;
-    }
-
-    public void setMessagePattern(String messagePattern) {
-        this.messagePattern = messagePattern;
-    }
-
-    public String getShortMessagePattern() {
-        return shortMessagePattern;
-    }
-
-    public void setShortMessagePattern(String shortMessagePattern) {
-        this.shortMessagePattern = shortMessagePattern;
-    }
 }

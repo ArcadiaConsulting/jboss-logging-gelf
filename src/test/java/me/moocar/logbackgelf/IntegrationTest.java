@@ -1,27 +1,31 @@
 package me.moocar.logbackgelf;
 
-import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.joran.JoranConfigurator;
-import ch.qos.logback.core.joran.spi.JoranException;
-import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
-import com.google.common.io.Resources;
-import org.junit.Before;
-import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
+import static org.junit.Assert.*;
 
 import java.io.IOException;
 import java.net.SocketException;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 
-import static me.moocar.logbackgelf.util.InternetUtils.getLocalHostName;
-import static org.junit.Assert.assertTrue;
+import me.moocar.logbackgelf.util.InternetUtils;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
+
+import es.arcadiaconsulting.graylog2.jboss.Graylog2Handler;
+import es.arcadiaconsulting.graylog2.jboss.SyslogLevel;
 
 public class IntegrationTest {
 
@@ -45,6 +49,10 @@ public class IntegrationTest {
         }
         return str.toString();
     }
+    
+    @BeforeClass
+    public static void init(){
+    }
 
     @Before
     public void setup() throws SocketException, UnknownHostException {
@@ -52,130 +60,107 @@ public class IntegrationTest {
         server.start();
         host = "Test";
     }
+    
+    @After
+    public void teardown() {
+        server.shutdown();
+    }
 
     @Test
-    public void test() throws IOException, JoranException {
+    public void test() throws IOException {
 
-        Logger logger = LoggerFactory.getLogger(this.getClass());
-        String message = "Testing empty MDC";
+        Logger logger = Logger.getLogger(IntegrationTest.class.getName());
+        logger.setLevel(java.util.logging.Level.ALL);
+        Graylog2Handler handler = new Graylog2Handler();
+        handler.setGraylog2ServerPort(6789);
+        handler.setFormatter(new SimpleFormatter());
+        handler.setStaticAdditionalFields(buildStaticFields());
+        logger.addHandler(handler);
 
         // Basic Request
-        logger.debug(message);
+        String message = "Test general fields";
+        logger.fine(message);
         sleep();
         lastRequest = server.lastRequest();
-        assertMapEquals(makeMap(message), removeFields(lastRequest));
-        assertTrue(lastRequest.containsKey("level"));
         assertTrue(lastRequest.containsKey("timestamp"));
-        assertTrue(lastRequest.containsKey("host"));
-
-        // Test with IP and requestID in MDC
-        ipAddress = "87.345.23.55";
-        MDC.put("ipAddress", ipAddress);
-        requestID = String.valueOf(new Random().nextInt(100000));
-        MDC.put("requestId", requestID);
-
-        message = "this is a new test";
-        logger.debug(message);
+        assertEquals((double)SyslogLevel.DEBUG_SEVERITY.getNumericValue(), lastRequest.get("level"));
+        assertEquals(InternetUtils.getLocalHostName(), lastRequest.get("host"));
+        assertTrue(lastRequest.get("full_message").endsWith("Test general fields\n"));
+        assertTrue(lastRequest.get("short_message").endsWith("Test general fields\n"));
+        
+        // Test log levels
+        message = "level test";
+        logger.severe(message);
         sleep();
         lastRequest = server.lastRequest();
-        assertMapEquals(makeMap(message), removeFields(lastRequest));
-        assertTrue(lastRequest.containsKey("level"));
-        assertTrue(lastRequest.containsKey("timestamp"));
+        assertEquals((double)SyslogLevel.ERROR_SEVERITY.getNumericValue(), lastRequest.get("level"));
+        message = "level test";
+        logger.warning(message);
+        sleep();
+        lastRequest = server.lastRequest();
+        assertEquals((double)SyslogLevel.WARNING_SEVERITY.getNumericValue(), lastRequest.get("level"));
+        message = "level test";
+        logger.info(message);
+        sleep();
+        lastRequest = server.lastRequest();
+        assertEquals((double)SyslogLevel.INFO_SEVERITY.getNumericValue(), lastRequest.get("level"));
+        message = "level test";
+        logger.fine(message);
+        sleep();
+        lastRequest = server.lastRequest();
+        assertEquals((double)SyslogLevel.DEBUG_SEVERITY.getNumericValue(), lastRequest.get("level"));
+        message = "level test";
+        logger.finer(message);
+        sleep();
+        lastRequest = server.lastRequest();
+        assertEquals((double)SyslogLevel.DEBUG_SEVERITY.getNumericValue(), lastRequest.get("level"));
+        message = "level test";
+        logger.finest(message);
+        sleep();
+        lastRequest = server.lastRequest();
+        assertEquals((double)SyslogLevel.DEBUG_SEVERITY.getNumericValue(), lastRequest.get("level"));
+
 
         // Test substitution works
-        logger.debug("this is a test with ({}) parameter", "this");
+        logger.log(java.util.logging.Level.FINE, "this is a test with ({0}) parameter", "this");
         sleep();
         lastRequest = server.lastRequest();
-        assertMapEquals(makeMap("this is a test with (this) parameter"), removeFields(lastRequest));
-        assertTrue(lastRequest.containsKey("level"));
-        assertTrue(lastRequest.containsKey("timestamp"));
+        assertTrue(lastRequest.get("full_message").endsWith("this is a test with (this) parameter\n"));
+        assertTrue(lastRequest.get("short_message").endsWith("this is a test with (this) parameter\n"));
 
         // Test file and line are output for stack trace
         try {
             new URL("app://asdfs");
         } catch (Exception e) {
-            logger.error("expected error", new IllegalStateException(e));
+            logger.log(java.util.logging.Level.SEVERE, "expected error", new IllegalStateException(e));
             sleep();
         }
-
-        // Test field in MDC is added even if not included in additional fields
-        MDC.put("newField", "the val");
-        message = "this is a test with an MDC field (new_field) that is not included in the additional fields. " +
-                "However includeFullMDC is set, so it should appear in the additional fields as _newField = the val";
-        logger.debug(message, "this");
-        sleep();
         lastRequest = server.lastRequest();
-        assertMapEquals(addField(makeMap(message), "_newField", "the val"), removeFields(lastRequest));
-        assertTrue(lastRequest.containsKey("level"));
-        assertTrue(lastRequest.containsKey("timestamp"));
-
+        assertTrue(lastRequest.containsKey("exception"));
+        assertTrue(lastRequest.get("exception").indexOf("MalformedURLException") >= 0);
+        
         // Test static additional field
         message = "Testing with a static additional field";
-        MDC.clear();
-        ipAddress = null;
-        requestID = null;
-        addStaticFieldToAppender();
-        logger.debug(message);
+        logger.fine(message);
         sleep();
         lastRequest = server.lastRequest();
-        assertMapEquals(addField(makeMap(message, "Testing wi"), "_node_name", "www013"), removeFields(lastRequest));
-        assertTrue(lastRequest.containsKey("level"));
-        assertTrue(lastRequest.containsKey("timestamp"));
-
-        // Finish
-        server.shutdown();
-        logger.debug("This is a test with a really long ending: " + longMessage);
+        assertEquals("value1", lastRequest.get("field1"));
+        
+        
+        // The shorten message
+        message = "this is a very loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooog message";
+        logger.log(java.util.logging.Level.FINE, message);
+        sleep();
+        lastRequest = server.lastRequest();
+        assertFalse(lastRequest.get("short_message").endsWith("message\n"));
+                
+        
     }
 
-    private void addStaticFieldToAppender() throws JoranException {
-        LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
-        JoranConfigurator joranConfigurator = new JoranConfigurator();
-        joranConfigurator.setContext(lc);
-        joranConfigurator.doConfigure(Resources.getResource("staticAdditionalFields.xml"));
-    }
-
-    private ImmutableMap<String, String> addField(ImmutableMap<String, String> map, String key, String value) {
-        return ImmutableMap.<String, String>builder().putAll(map).put(key, value).build();
-    }
-
-    private void assertMapEquals(ImmutableMap<String, String> m1, ImmutableMap<String, String> m2) {
-        //System.out.println(m1);
-        //System.out.println(m2);
-        assertTrue("Difference:" + Maps.difference(m1, m2).entriesDiffering(), Maps.difference(m1, m2).areEqual());
-    }
-
-    private ImmutableMap<String, String> makeErrorMap(String shortMessage) throws IOException {
-        return ImmutableMap.<String, String>builder()
-                .put("_ip_address", ipAddress)
-                .put("_request_id", requestID)
-                .put("host", host)
-                .put("facility", "logback-gelf-test")
-                .put("short_message", shortMessage)
-                .put("_loggerName", "me.moocar.logbackgelf.IntegrationTest")
-                .put("version", "1.0").build();
-    }
-
-    private ImmutableMap<String, String> makeMap(String message) {
-        return makeMap(message, message);
-    }
-
-    private ImmutableMap<String, String> makeMap(String fullMessage, String shortMessage) {
-        ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String>builder()
-                .put("host", host)
-                .put("facility", "logback-gelf-test")
-                .put("short_message", shortMessage)
-                .put("full_message", fullMessage)
-                .put("_loggerName", "me.moocar.logbackgelf.IntegrationTest")
-                .put("version", "1.0");
-        if (ipAddress != null)
-            builder.put("_ip_address", ipAddress);
-        if (requestID != null)
-            builder.put("_request_id", requestID);
-        return builder.build();
-    }
-
-    private ImmutableMap<String, String> removeFields(ImmutableMap<String, String> map) {
-        return ImmutableMap.copyOf(Maps.filterKeys(map, Predicates.not(Predicates.in(fieldsToIgnore))));
+    private Map<String, String> buildStaticFields() {
+    	Map<String, String> staticFileds = new HashMap<String, String>();
+    	staticFileds.put("field1", "value1");
+    	return staticFileds;
     }
 
     private void sleep() {

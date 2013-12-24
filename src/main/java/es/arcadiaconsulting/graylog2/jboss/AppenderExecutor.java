@@ -1,6 +1,10 @@
-package me.moocar.logbackgelf;
+package es.arcadiaconsulting.graylog2.jboss;
 
-import ch.qos.logback.classic.spi.ILoggingEvent;
+import java.util.logging.LogRecord;
+
+import me.moocar.logbackgelf.PayloadChunker;
+import me.moocar.logbackgelf.Transport;
+import me.moocar.logbackgelf.Zipper;
 
 /**
  * Converts a log event into a a payload or chunks and sends them to the graylog2-server
@@ -31,7 +35,7 @@ public class AppenderExecutor {
      *
      * @param logEvent The event that we are logging
      */
-	public void append(final ILoggingEvent logEvent) {
+	public void append(final LogRecord logEvent) {
 
         byte[] payload = zipper.zip(gelfConverter.toGelf(logEvent));
 

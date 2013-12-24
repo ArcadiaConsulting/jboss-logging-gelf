@@ -32,7 +32,7 @@ public class TestServer {
     }
 
     public static TestServer build() throws SocketException {
-        return new TestServer(new ServerThread(new DatagramSocket(12201)));
+        return new TestServer(new ServerThread(new DatagramSocket(6789)));
     }
 
     public ImmutableMap<String, String> lastRequest() {
