@@ -1,4 +1,4 @@
-package me.moocar.logbackgelf;
+package es.arcadiaconsulting.graylog2.jboss;
 
 import static org.junit.Assert.*;
 
@@ -12,8 +12,10 @@ import java.util.Random;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
+import me.moocar.logbackgelf.TestServer;
 import me.moocar.logbackgelf.util.InternetUtils;
 
+import org.jboss.logging.MDC;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -153,8 +155,16 @@ public class IntegrationTest {
         sleep();
         lastRequest = server.lastRequest();
         assertFalse(lastRequest.get("short_message").endsWith("message\n"));
-                
         
+        
+        // Test MCD context
+        message = "A message with contet params";
+        MDC.put("aDynProperty", "aDynValue");
+        logger.log(java.util.logging.Level.FINE, message);
+        sleep();
+        lastRequest = server.lastRequest();
+        assertTrue(lastRequest.containsKey("aDynProperty"));
+        assertEquals("aDynValue", lastRequest.get("aDynProperty"));
     }
 
     private Map<String, String> buildStaticFields() {

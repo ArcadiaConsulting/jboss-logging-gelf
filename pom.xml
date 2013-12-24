@@ -40,7 +40,15 @@
 			<groupId>org.jboss.logging</groupId>
 			<artifactId>jboss-logging</artifactId>
 			<version>${jboss.logging.version}</version>
+			<scope>provided</scope>
 		</dependency>
+		<dependency>
+			<groupId>commons-collections</groupId>
+			<artifactId>commons-collections</artifactId>
+			<version>3.2.1</version>
+			<scope>provided</scope>
+		</dependency>
+		
 		<dependency>
 			<groupId>com.google.code.gson</groupId>
 			<artifactId>gson</artifactId>
@@ -80,5 +88,54 @@
 	<properties>
 	    <jboss.logging.version>3.1.4.GA</jboss.logging.version>
 	</properties>	
-
+	
+	<profiles>
+	    <profile>
+	        <id>dev</id>
+	        <build>
+	            <plugins>
+					<plugin>
+						<groupId>org.zeroturnaround</groupId>
+						<artifactId>jrebel-maven-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>generate-rebel-xml</id>
+								<phase>process-resources</phase>
+								<goals>
+									<goal>generate</goal>
+								</goals>
+							</execution>
+						</executions>
+						<configuration>
+							<relativePath>../</relativePath>
+							<rootPath>$${jboss-login-gelf.sources}</rootPath>
+						</configuration>
+					</plugin>	
+					<plugin>
+						<artifactId>maven-antrun-plugin</artifactId>
+						<version>1.7</version>
+						<executions>
+							<execution>
+								<id>deploy</id>
+								<phase>package</phase>
+								<configuration>
+									<target>
+										<property environment="env" />
+										<property name="maven.project.artifactId" value="${project.artifactId}" />
+										<property name="maven.project.version" value="${project.version}" />
+										<property name="deployDir" value="${env.JBOSS_GELF_HOME}/modules/es/arcadiaconsulting/graylog2/main" />
+										<copy file="target/${maven.project.artifactId}-${maven.project.version}.jar" tofile="${deployDir}/${maven.project.artifactId}-${maven.project.version}.jar" />
+									</target>
+								</configuration>
+								<goals>
+									<goal>run</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+										                
+	            </plugins>
+	        </build>
+	    </profile>
+	</profiles>
 </project>

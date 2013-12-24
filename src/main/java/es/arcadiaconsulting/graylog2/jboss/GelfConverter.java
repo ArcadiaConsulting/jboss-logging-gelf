@@ -12,6 +12,9 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.Set;
 
+import org.apache.commons.collections.MapUtils;
+import org.jboss.logging.MDC;
+
 import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -91,12 +94,26 @@ public class GelfConverter {
         map.put("timestamp", logEventTimeTimeStamp);
         map.put("version", "1.0");
         map.put("level", javaLevel2SyslogLevel(logEvent));
+        mcdFields(map);
         additionalFields(map, logEvent);
         staticAdditionalFields(map);
         return map;
     }
 
     /**
+     * Method that generated dynamic params based on {@link MDC} context
+     * @param map
+     */
+    protected void mcdFields(Map<String, Object> map) {
+		Map<String, Object> mdcMap = MDC.getMap();
+		if(MapUtils.isNotEmpty(mdcMap)) {
+			for (Map.Entry<String, Object> entry : mdcMap.entrySet()) {
+				map.put(entry.getKey(), entry.getValue());
+			}
+		}
+	}
+
+	/**
      * Transform java loggin levels into Syslog levels
      * @param logEvent
      * @return

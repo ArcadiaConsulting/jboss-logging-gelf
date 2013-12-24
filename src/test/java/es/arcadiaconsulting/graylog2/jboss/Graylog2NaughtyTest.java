@@ -15,7 +15,7 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, 
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package me.moocar.logbackgelf;
+package es.arcadiaconsulting.graylog2.jboss;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
