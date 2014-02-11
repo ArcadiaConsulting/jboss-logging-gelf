@@ -1,8 +1,11 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-
+	<parent>
+		<groupId>org.sonatype.oss</groupId>
+		<artifactId>oss-parent</artifactId>
+		<version>7</version>
+	</parent>
 	<modelVersion>4.0.0</modelVersion>
-
 	<groupId>es.arcadiaconsulting.graylog2</groupId>
 	<artifactId>jboss-logging-gelf</artifactId>
 	<packaging>jar</packaging>
@@ -30,6 +33,7 @@
 
 	<developers>
 		<developer>
+			<id>gonzalogomezgarcia</id>
 			<name>Gonzalo Gómez García</name>
 			<email>gonzalo@arcadiaconsulting.es</email>
 		</developer>
@@ -48,7 +52,7 @@
 			<version>3.2.1</version>
 			<scope>provided</scope>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>com.google.code.gson</groupId>
 			<artifactId>gson</artifactId>
@@ -86,14 +90,13 @@
 		</plugins>
 	</build>
 	<properties>
-	    <jboss.logging.version>3.1.4.GA</jboss.logging.version>
-	</properties>	
-	
+		<jboss.logging.version>3.1.4.GA</jboss.logging.version>
+	</properties>
 	<profiles>
-	    <profile>
-	        <id>dev</id>
-	        <build>
-	            <plugins>
+		<profile>
+			<id>dev</id>
+			<build>
+				<plugins>
 					<plugin>
 						<groupId>org.zeroturnaround</groupId>
 						<artifactId>jrebel-maven-plugin</artifactId>
@@ -110,7 +113,7 @@
 							<relativePath>../</relativePath>
 							<rootPath>$${jboss-login-gelf.sources}</rootPath>
 						</configuration>
-					</plugin>	
+					</plugin>
 					<plugin>
 						<artifactId>maven-antrun-plugin</artifactId>
 						<version>1.7</version>
@@ -123,8 +126,11 @@
 										<property environment="env" />
 										<property name="maven.project.artifactId" value="${project.artifactId}" />
 										<property name="maven.project.version" value="${project.version}" />
-										<property name="deployDir" value="${env.JBOSS_GELF_HOME}/modules/es/arcadiaconsulting/graylog2/main" />
-										<copy file="target/${maven.project.artifactId}-${maven.project.version}.jar" tofile="${deployDir}/${maven.project.artifactId}-${maven.project.version}.jar" />
+										<property name="deployDir"
+											value="${env.JBOSS_GELF_HOME}/modules/es/arcadiaconsulting/graylog2/main" />
+										<copy
+											file="target/${maven.project.artifactId}-${maven.project.version}.jar"
+											tofile="${deployDir}/${maven.project.artifactId}-${maven.project.version}.jar" />
 									</target>
 								</configuration>
 								<goals>
@@ -133,9 +139,8 @@
 							</execution>
 						</executions>
 					</plugin>
-										                
-	            </plugins>
-	        </build>
-	    </profile>
+				</plugins>
+			</build>
+		</profile>
 	</profiles>
 </project>
