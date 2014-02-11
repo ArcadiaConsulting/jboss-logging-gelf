@@ -26,9 +26,9 @@
 	</licenses>
 
 	<scm>
-		<connection>scm:git:git@ithub.com/ArcadiaConsulting/jboss-logging-gelf.git</connection>
-		<developerConnection>scm:git:git@ithub.com/ArcadiaConsulting/jboss-logging-gelf.git</developerConnection>
-		<url>git@ithub.com/ArcadiaConsulting/jboss-logging-gelf.git</url>
+		<connection>scm:git:git@github.com:ArcadiaConsulting/jboss-logging-gelf.git</connection>
+		<developerConnection>scm:git:git@github.com:ArcadiaConsulting/jboss-logging-gelf.git</developerConnection>
+		<url>git@github.com:ArcadiaConsulting/jboss-logging-gelf.git</url>
 	</scm>
 
 	<developers>
