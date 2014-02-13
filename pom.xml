@@ -142,5 +142,71 @@
 				</plugins>
 			</build>
 		</profile>
+		<profile>
+			<id>release</id>
+			<activation>
+				<property>
+					<name>performRelease</name>
+					<value>true</value>
+				</property>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-gpg-plugin</artifactId>
+						<version>1.1</version>
+						<executions>
+							<execution>
+								<id>sign-artifacts</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>sign</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<artifactId>maven-assembly-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>jboss7-module-assembly</id>
+								<phase>package</phase>
+								<goals>
+									<goal>single</goal>
+								</goals>
+								<configuration>
+									<finalName>${project.artifactId}-jboss7-module-${project.version}</finalName>
+									<descriptors>
+										<descriptor>src/main/assembly/jboss7-module.xml</descriptor>
+									</descriptors>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<artifactId>maven-deploy-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>deploy-jboss7-module</id>
+								<phase>deploy</phase>
+								<goals>
+									<goal>deploy-file</goal>
+								</goals>
+								<configuration>
+									<file>target/${project.artifactId}-jboss7-module-${project.version}.zip</file>
+									<artifactId>jboss7-module</artifactId>
+									<groupId>${project.groupId}</groupId>
+									<version>${project.version}</version>
+									<packaging>zip</packaging>
+									<url>${project.distributionManagement.repository.url}</url>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>					
+				</plugins>
+			</build>
+			
+		</profile>
 	</profiles>
 </project>
