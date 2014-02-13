@@ -1,5 +1,4 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<parent>
 		<groupId>org.sonatype.oss</groupId>
 		<artifactId>oss-parent</artifactId>
@@ -9,7 +8,7 @@
 	<groupId>es.arcadiaconsulting.graylog2</groupId>
 	<artifactId>jboss-logging-gelf</artifactId>
 	<packaging>jar</packaging>
-	<version>1.0.0-SNAPSHOT</version>
+	<version>1.0.1-SNAPSHOT</version>
 	<name>JBoss Logging Gelf components</name>
 
 	<description>GELF Appender for JBoss Logging system. Use this appender to log messages to a graylog2 server via GELF messages.</description>
@@ -126,11 +125,8 @@
 										<property environment="env" />
 										<property name="maven.project.artifactId" value="${project.artifactId}" />
 										<property name="maven.project.version" value="${project.version}" />
-										<property name="deployDir"
-											value="${env.JBOSS_GELF_HOME}/modules/es/arcadiaconsulting/graylog2/main" />
-										<copy
-											file="target/${maven.project.artifactId}-${maven.project.version}.jar"
-											tofile="${deployDir}/${maven.project.artifactId}-${maven.project.version}.jar" />
+										<property name="deployDir" value="${env.JBOSS_GELF_HOME}/modules/es/arcadiaconsulting/graylog2/main" />
+										<copy file="target/${maven.project.artifactId}-${maven.project.version}.jar" tofile="${deployDir}/${maven.project.artifactId}-${maven.project.version}.jar" />
 									</target>
 								</configuration>
 								<goals>
