@@ -9,6 +9,9 @@ import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.logging.Filter;
+import java.util.logging.Formatter;
+import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
@@ -61,6 +64,7 @@ public class IntegrationTest {
         server = TestServer.build();
         server.start();
         host = "Test";
+        lastRequest = null;
     }
     
     @After
@@ -165,7 +169,97 @@ public class IntegrationTest {
         lastRequest = server.lastRequest();
         assertTrue(lastRequest.containsKey("aDynProperty"));
         assertEquals("aDynValue", lastRequest.get("aDynProperty"));
+        
+        
     }
+    
+    @Test
+    public void testLogLevels() throws IOException {
+    	
+        Logger logger = Logger.getLogger(IntegrationTest.class.getName());
+        logger.setLevel(java.util.logging.Level.WARNING);
+        Graylog2Handler handler = new Graylog2Handler();
+        handler.setGraylog2ServerPort(6789);
+        handler.setFormatter(new Formatter() {
+			
+			@Override
+			public String format(LogRecord record) {
+				return record.getMessage();
+			}
+		});
+        logger.addHandler(handler);
+
+        // Test a log levels (only warn and error shall appear) 
+        logger.finest("This message shall not appears");
+        sleep();
+        lastRequest = server.lastRequest();
+        assertNull(lastRequest);
+        
+        logger.finer("This message shall not appears");
+        sleep();
+        lastRequest = server.lastRequest();
+        assertNull(lastRequest);
+        
+        logger.fine("This message shall not appears");
+        sleep();
+        lastRequest = server.lastRequest();
+        assertNull(lastRequest);
+        
+        logger.info("This message shall not appears");
+        sleep();
+        lastRequest = server.lastRequest();
+        assertNull(lastRequest);
+        
+        logger.warning("This warn message shall appears");
+        sleep();
+        lastRequest = server.lastRequest();
+        assertEquals("This warn message shall appears", lastRequest.get("full_message"));
+        
+        logger.severe("This error message shall appears");
+        sleep();
+        lastRequest = server.lastRequest();
+        assertEquals("This error message shall appears", lastRequest.get("full_message"));
+    	
+    }
+    
+    @Test
+    public void testLogFilters() throws IOException {
+    	
+        Logger logger = Logger.getLogger(IntegrationTest.class.getName());
+        logger.setLevel(java.util.logging.Level.ALL);
+        Graylog2Handler handler = new Graylog2Handler();
+        handler.setGraylog2ServerPort(6789);
+        handler.setFormatter(new Formatter() {
+			
+			@Override
+			public String format(LogRecord record) {
+				return record.getMessage();
+			}
+		});
+        logger.addHandler(handler);
+        logger.setFilter(new Filter() {
+			
+			@Override
+			public boolean isLoggable(LogRecord record) {
+				return record.getMessage().startsWith("!");
+			}
+		});
+        
+        
+        logger.severe("This warn message shall appears");
+        sleep();
+        lastRequest = server.lastRequest();
+        assertNull(lastRequest);
+        
+        logger.severe("!This warn message shall appears");
+        sleep();
+        lastRequest = server.lastRequest();
+        assertEquals("!This warn message shall appears", lastRequest.get("full_message"));
+        
+        
+    }
+    
+    
 
     private Map<String, String> buildStaticFields() {
     	Map<String, String> staticFileds = new HashMap<String, String>();

@@ -40,7 +40,7 @@ public class TestServer {
     }
 
     public void shutdown() {
-        serverThread.stopServer = true;
+        serverThread.getSocket().close();
     }
 
     private static class ServerThread extends Thread {
@@ -72,9 +72,13 @@ public class TestServer {
                     Map map = gson.fromJson(decompressed, Map.class);
                     lastRequest = ImmutableMap.copyOf(map);// ImmutableMap.of("Zipped?", true, "length", packet.getLength(), "body", decompressed, "map", map);
                 }
-
-            }
-
+            } 
+            
+            synchronized (this.socket) {
+            	if(!this.socket.isClosed()) {
+                    socket.close();
+            	}
+			}
         }
 
         public static String decompressGzip(byte[] inputBuf) {
@@ -93,6 +97,10 @@ public class TestServer {
             } catch (IOException e) {
                 return "Error creating input stream" + e.getMessage();
             }
+        }
+        
+        public DatagramSocket getSocket(){
+        	return this.socket;
         }
 
     }

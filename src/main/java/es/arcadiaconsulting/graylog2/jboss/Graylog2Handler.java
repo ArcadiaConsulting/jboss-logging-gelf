@@ -69,7 +69,11 @@ public class Graylog2Handler extends Handler {
 					this.initialized = true;
 				}
 			}
-            appenderExecutor.append(record);
+        	
+        	if(isLoggable(record)) {
+                appenderExecutor.append(record);
+        	}
+        	
         } catch (Exception e) {
             this.reportError("Unexpected error sending GELF message to Graylog", e, ErrorManager.GENERIC_FAILURE);
         }
