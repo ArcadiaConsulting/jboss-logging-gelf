@@ -8,7 +8,7 @@
 	<groupId>es.arcadiaconsulting.graylog2</groupId>
 	<artifactId>jboss-logging-gelf</artifactId>
 	<packaging>jar</packaging>
-	<version>1.0.1</version>
+	<version>1.0.2-SNAPSHOT</version>
 	<name>JBoss Logging Gelf components</name>
 
 	<description>GELF Appender for JBoss Logging system. Use this appender to log messages to a graylog2 server via GELF messages.</description>
