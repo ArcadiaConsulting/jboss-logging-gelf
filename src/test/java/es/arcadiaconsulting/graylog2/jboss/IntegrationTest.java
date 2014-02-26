@@ -75,7 +75,7 @@ public class IntegrationTest {
     @Test
     public void test() throws IOException {
 
-        Logger logger = Logger.getLogger(IntegrationTest.class.getName());
+        Logger logger = Logger.getLogger(IntegrationTest.class.getName() + ".test");
         logger.setLevel(java.util.logging.Level.ALL);
         Graylog2Handler handler = new Graylog2Handler();
         handler.setGraylog2ServerPort(6789);
@@ -176,7 +176,7 @@ public class IntegrationTest {
     @Test
     public void testLogLevels() throws IOException {
     	
-        Logger logger = Logger.getLogger(IntegrationTest.class.getName());
+        Logger logger = Logger.getLogger(IntegrationTest.class.getName() + ".testLogLevels");
         logger.setLevel(java.util.logging.Level.WARNING);
         Graylog2Handler handler = new Graylog2Handler();
         handler.setGraylog2ServerPort(6789);
@@ -225,7 +225,7 @@ public class IntegrationTest {
     @Test
     public void testLogFilters() throws IOException {
     	
-        Logger logger = Logger.getLogger(IntegrationTest.class.getName());
+        Logger logger = Logger.getLogger(IntegrationTest.class.getName()  + ".testLogFilters");
         logger.setLevel(java.util.logging.Level.ALL);
         Graylog2Handler handler = new Graylog2Handler();
         handler.setGraylog2ServerPort(6789);
