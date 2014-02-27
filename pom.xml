@@ -46,6 +46,13 @@
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
+			<groupId>org.jboss.logmanager</groupId>
+			<artifactId>jboss-logmanager</artifactId>
+			<version>${jboss.logmanager.version}</version>
+			<scope>provided</scope>
+		</dependency>
+		
+		<dependency>
 			<groupId>commons-collections</groupId>
 			<artifactId>commons-collections</artifactId>
 			<version>3.2.1</version>
@@ -90,6 +97,7 @@
 	</build>
 	<properties>
 		<jboss.logging.version>3.1.4.GA</jboss.logging.version>
+		<jboss.logmanager.version>1.2.2.GA</jboss.logmanager.version>
 	</properties>
 	<profiles>
 		<profile>
@@ -126,7 +134,7 @@
 										<property name="maven.project.artifactId" value="${project.artifactId}" />
 										<property name="maven.project.version" value="${project.version}" />
 										<property name="deployDir" value="${env.JBOSS_GELF_HOME}/modules/es/arcadiaconsulting/graylog2/main" />
-										<copy file="target/${maven.project.artifactId}-${maven.project.version}.jar" tofile="${deployDir}/${maven.project.artifactId}-${maven.project.version}.jar" />
+										<copy file="target/${maven.project.artifactId}-${maven.project.version}.jar" tofile="${deployDir}/${maven.project.artifactId}.jar" />
 									</target>
 								</configuration>
 								<goals>

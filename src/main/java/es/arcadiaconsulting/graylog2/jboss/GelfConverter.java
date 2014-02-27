@@ -33,6 +33,7 @@ public class GelfConverter {
     private final String hostname;
     private final Gson gson;
     private Formatter messageFormatter;
+    private Formatter shortMessageFormatter;
 
     public GelfConverter(String facility,
                          boolean useLoggerName,
@@ -40,7 +41,7 @@ public class GelfConverter {
                          Map<String, String> staticAdditionalFields,
                          int shortMessageLength,
                          String hostname,
-                         Formatter messageFormatter) {
+                         Formatter messageFormatter, Formatter shortMessageFormatter) {
 
         this.facility = facility;
         this.useLoggerName = useLoggerName;
@@ -49,6 +50,7 @@ public class GelfConverter {
         this.shortMessageLength = shortMessageLength;
         this.hostname = hostname;
         this.messageFormatter = messageFormatter;
+        this.shortMessageFormatter = shortMessageFormatter;
 
         // Init GSON for underscores
         GsonBuilder gsonBuilder = new GsonBuilder();
@@ -87,7 +89,7 @@ public class GelfConverter {
 
         map.put("full_message", message);
         map.put("short_message", truncateToShortMessage(message, logEvent));
-
+        
         // Ever since version 0.9.6, GELF accepts timestamps in decimal form.
         double logEventTimeTimeStamp = logEvent.getMillis() / 1000.0;
         stackTraceField(map, logEvent);
@@ -138,13 +140,23 @@ public class GelfConverter {
 					+ " is not a valid level for a printing method");
 		}
 	}
-
+	
 	private void stackTraceField(Map<String, Object> map, LogRecord eventObject) {
-        Throwable exception = eventObject.getThrown();
-        if(exception != null) {
-        	StringWriter sw = new StringWriter();
-        	PrintWriter pw = new PrintWriter(sw);
-        	try {
+		Throwable exception = eventObject.getThrown();
+		if (exception != null) {
+			StackTraceElement[] stackTraces = exception.getStackTrace();
+			if (stackTraces != null && stackTraces.length > 0) {
+				StackTraceElement lastStack = stackTraces[0];
+				map.put("exception_file", lastStack.getFileName());
+				map.put("exception_class", lastStack.getClassName());
+				map.put("exception_method", lastStack.getMethodName());
+				map.put("exception_line",
+						String.valueOf(lastStack.getLineNumber()));
+			}
+
+			StringWriter sw = new StringWriter();
+			PrintWriter pw = new PrintWriter(sw);
+			try {
 				exception.printStackTrace(pw);
 				map.put("exception", sw.toString());
 			} finally {
@@ -153,9 +165,9 @@ public class GelfConverter {
 				} catch (IOException e) {
 				}
 				pw.close();
-			} 
-        }
-    }
+			}
+		}
+	}
 
     /**
      * Converts the additional fields into proper GELF JSON
@@ -182,6 +194,10 @@ public class GelfConverter {
     }
 
     private String truncateToShortMessage(String fullMessage, LogRecord logEvent) {
+    	if(this.shortMessageFormatter != null) {
+    		return this.shortMessageFormatter.format(logEvent);
+    	}
+    	
         if (fullMessage.length() > shortMessageLength) {
             return fullMessage.substring(0, shortMessageLength);
         }

@@ -29,7 +29,8 @@ public class Graylog2NaughtyTest {
         Logger logger = Logger.getLogger(Graylog2NaughtyTest.class.getName());
         logger.setLevel(java.util.logging.Level.ALL);
         Graylog2Handler handler = new Graylog2Handler();
-        handler.setGraylog2ServerPort(12201);
+        handler.setGraylog2ServerPort(12203);
+        handler.setGraylog2ServerHost("megalopoli.ceei.arcadiaconsulting.es");
         handler.setFormatter(new SimpleFormatter());
         logger.addHandler(handler);
         logger.log(Level.SEVERE, "An error", new Throwable("the exeception message"));

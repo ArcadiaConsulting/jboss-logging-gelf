@@ -11,6 +11,8 @@ import java.util.logging.ErrorManager;
 import java.util.logging.Handler;
 import java.util.logging.LogRecord;
 
+import org.jboss.logmanager.formatters.PatternFormatter;
+
 import me.moocar.logbackgelf.ChunkFactory;
 import me.moocar.logbackgelf.MessageIdProvider;
 import me.moocar.logbackgelf.PayloadChunker;
@@ -34,6 +36,7 @@ public class Graylog2Handler extends Handler {
     private Map<String, String> staticAdditionalFields = new HashMap<String, String>();
     private boolean includeFullMDC;
     private String hostName;
+    private String shortMessagePattern;
 
     // The following are hidden (not configurable)
     private int shortMessageLength = 255;
@@ -105,9 +108,10 @@ public class Graylog2Handler extends Handler {
                     new ChunkFactory(chunkedGelfId, padSeq));
 
             GelfConverter converter = new GelfConverter(facility, useLoggerName, useThreadName, 
-                    staticAdditionalFields, shortMessageLength, hostName, getFormatter());
-
+                    staticAdditionalFields, shortMessageLength, hostName, getFormatter(), 
+                    this.shortMessagePattern != null? new PatternFormatter(this.shortMessagePattern): null);
             appenderExecutor = new AppenderExecutor(transport, payloadChunker, converter, new Zipper(), chunkThreshold);
+            
 
         } catch (Exception e) {
 
@@ -272,5 +276,15 @@ public class Graylog2Handler extends Handler {
     public void setChunkThreshold(int chunkThreshold) {
         this.chunkThreshold = chunkThreshold;
     }
+
+	public String getShortMessagePattern() {
+		return shortMessagePattern;
+	}
+
+	public void setShortMessagePattern(String shortMessagePattern) {
+		this.shortMessagePattern = shortMessagePattern;
+	}
+    
+    
 
 }

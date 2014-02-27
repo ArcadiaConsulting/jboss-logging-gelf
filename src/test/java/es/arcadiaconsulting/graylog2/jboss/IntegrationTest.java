@@ -144,6 +144,10 @@ public class IntegrationTest {
         lastRequest = server.lastRequest();
         assertTrue(lastRequest.containsKey("exception"));
         assertTrue(lastRequest.get("exception").indexOf("MalformedURLException") >= 0);
+        assertEquals("IntegrationTest.java", lastRequest.get("exception_file"));
+        assertEquals("es.arcadiaconsulting.graylog2.jboss.IntegrationTest", lastRequest.get("exception_class"));
+        assertEquals("test", lastRequest.get("exception_method"));
+        assertEquals("141", lastRequest.get("exception_line"));
         
         // Test static additional field
         message = "Testing with a static additional field";
@@ -255,11 +259,26 @@ public class IntegrationTest {
         sleep();
         lastRequest = server.lastRequest();
         assertEquals("!This warn message shall appears", lastRequest.get("full_message"));
-        
-        
     }
     
-    
+    @Test
+    public void testShortMessage() throws IOException {
+    	
+        Logger logger = Logger.getLogger(IntegrationTest.class.getName() + ".testShortMessage");
+        logger.setLevel(java.util.logging.Level.SEVERE);
+        Graylog2Handler handler = new Graylog2Handler();
+        handler.setGraylog2ServerPort(6789);
+        handler.setFormatter(new SimpleFormatter());
+        handler.setShortMessagePattern("%s%n");
+        logger.addHandler(handler);
+        
+        logger.log(java.util.logging.Level.SEVERE, "A sever errror", new RuntimeException());
+        sleep();
+        lastRequest = server.lastRequest();
+        assertNotNull(lastRequest);
+        assertEquals("A sever errror\n", lastRequest.get("short_message"));
+        assertTrue(lastRequest.get("full_message").contains("es.arcadiaconsulting.graylog2.jboss.IntegrationTest testShortMessage\nSEVERE: A sever errror\njava.lang.RuntimeException"));
+    }
 
     private Map<String, String> buildStaticFields() {
     	Map<String, String> staticFileds = new HashMap<String, String>();
