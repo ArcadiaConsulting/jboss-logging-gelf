@@ -249,6 +249,19 @@ public class Graylog2Handler extends Handler {
 
         staticAdditionalFields.put(splitted[0], splitted[1]);
     }
+    
+    /**
+     * Method for custom hanlder property staticAdditionalFields.
+     * The method accepted a token separated strtring 
+     * @param property
+     */
+    public void setStaticAdditionalFieldsProperties(String properties) {
+    	if(properties != null && properties.trim().length() > 0) {
+    		for(String property: properties.split("(?<!\\\\);")) {
+    			addStaticAdditionalField(property.replaceAll("\\\\;", ";"));
+    		}
+    	}
+    }
 
     /**
      * The length of the message to truncate to

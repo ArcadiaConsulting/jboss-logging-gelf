@@ -55,6 +55,7 @@ public class GelfConverter {
         // Init GSON for underscores
         GsonBuilder gsonBuilder = new GsonBuilder();
         gsonBuilder.setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES);
+        gsonBuilder.setPrettyPrinting();
         this.gson = gsonBuilder.create();
     }
 
