@@ -188,6 +188,7 @@
 							</execution>
 						</executions>
 					</plugin>
+					<!-- Default deploymnet of artifact must be done due to permissions on Sonatype staggnig repo
 					<plugin>
 						<artifactId>maven-deploy-plugin</artifactId>
 						<executions>
@@ -207,7 +208,8 @@
 								</configuration>
 							</execution>
 						</executions>
-					</plugin>					
+					</plugin>		
+					-->			
 				</plugins>
 			</build>
 			
